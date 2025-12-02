@@ -1,6 +1,15 @@
-# src/audio_manager.py
+
 import pygame
-from pathlib import Path
+import sys
+import os
+
+# QUAN TRỌNG: Thêm hàm này để .exe tìm được nhạc
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class AudioManager:
     def __init__(self, ai_game):
@@ -15,12 +24,12 @@ class AudioManager:
         self.game_music = self._find_music("game_music")
 
     def _find_music(self, name):
-        for ext in ['.wav', '.mp3', '.ogg']:
-            path = Path("src/sounds") / f"{name}{ext}"
-            if path.exists():
+        for ext in ['.mp3', '.ogg', '.wav']:
+            path = resource_path(os.path.join("src", "sounds", f"{name}{ext}"))
+            if os.path.exists(path):
                 print(f"Nhạc tìm thấy: {path}")
-                return str(path)
-        print(f"Không tìm thấy: {name}")
+                return path
+        print(f"Không tìm thấy nhạc: {name}")
         return None
 
     def play_music(self, path, fade=600):

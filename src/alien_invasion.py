@@ -1,32 +1,27 @@
-# src/alien_invasion.py
+# src/alien_invasion.py ← ĐÂY LÀ FILE CHẠY CHÍNH
 import pygame
 import sys
+import os
 from pathlib import Path
 
-print("KIỂM TRA HỆ THỐNG:")
-print(f"   Python: {sys.version.split()[0]}")
-print(f"   Pygame: {pygame.version.ver}")
-print(f"   OS: {'NT' if sys.platform.startswith('win') else sys.platform.upper()}")
-print(f"   Save file: {'Có' if Path('save_data.json').exists() else 'Không'}")
+# THÊM HÀM TÌM ĐÚNG ĐƯỜNG DẪN KHI BUILD .EXE
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
-try:
-    from alien_invasion_main import AlienInvasion
-except ImportError as e:
-    print(f"LỖI IMPORT: {e}")
-    sys.exit(1)
+# Import class game từ file chính
+from alien_invasion_main import AlienInvasion
+
+pygame.init()
 
 def main():
-    print("KHỞI ĐỘNG ALIEN INVASION - ULTRA EDITION")
-    pygame.init()
+    print("KHỞI ĐỘNG ALIEN INVASION - PHIÊN BẢN HOÀN CHỈNH")
     game = AlienInvasion()
-    print("GAME READY! Chạy với 1200x800 @ 60FPS")
-    try:
-        game.run_game()
-    except Exception as e:
-        print(f"LỖI CHẠY GAME: {e}")
-        import traceback
-        traceback.print_exc()
-        input("Nhấn Enter để thoát...")
+    game.run_game()
 
 if __name__ == "__main__":
+    pygame.init()
     main()

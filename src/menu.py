@@ -148,7 +148,7 @@ class Menu:
             "F3                    Debug hitbox", "",
             "ẢI CHƠI", "Ải 1–2: Địch bay lưới", "Ải 3: Địch bay random", "Ải 4: BOSS CUỐI siêu khó!", "",
             "TÍNH NĂNG", "• 5 skin tàu cực đẹp", "• Hiệu ứng nổ + lửa", "• Âm thanh chất", "• Lưu game tự động", "",
-            "TÁC GIẢ", "LÊ THANH CƯỜNG", "Mã sinh viên: N24DTCN009 – PTIT HCM", "Tiến Phúc", "Mã sinh viên: N24DTCN009 – PTIT HCM", "",
+            "TÁC GIẢ", "LÊ THANH CƯỜNG", "Mã sinh viên: N24DTCN009 – PTIT HCM", "",
             "Cảm ơn thầy cô và các bạn đã chơi thử!", "Phiên bản 1.0 – 11/2025", "", "", "", "", "", "", "", "", "", "", ""
         ]
 

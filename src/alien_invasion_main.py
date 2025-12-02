@@ -8,7 +8,17 @@ import json
 import random
 import math
 from pathlib import Path
+# ================== FIX ĐƯỜNG DẪN CHO .EXE (CHỈ 12 DÒNG) ==================
+import os
+import sys
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+# =====================================================================
 # Nhập các module
 try:
     from menu_pause import PauseMenu
@@ -40,8 +50,8 @@ class LevelConfig:
     shoot_chance: float
 
 LEVEL_CONFIGS = {
-    1: LevelConfig(0.6, 8, 5, 50, 1, 0.0003),
-    2: LevelConfig(1.2, 12, 7, 100, 1, 0.0010),
+    1: LevelConfig(0.6, 8, 5, 50, 20, 0.0003),
+    2: LevelConfig(1.2, 12, 7, 100, 20, 0.0010),
     3: LevelConfig(1.8, 18, 10, 200, 25, 0.0020),
     4: LevelConfig(3.0, 30, 15, 500, 30, 0.0040),
 }
@@ -133,28 +143,44 @@ class Ship(Sprite):
         self.moving_left = False
 
     def _load_ship_image(self):
-        """Tải ảnh tàu theo skin đã chọn (roket_0.png → roket_4.png)"""
-        skin_name = self.settings.ship_skins[self.settings.ship_skin]
-        ship_path = Path(f"src/backgrounds/{skin_name}.png")
+        # Danh sách 5 skin tàu (đảm bảo tên file đúng 100% với file bạn có)
+        ship_files = [
+            "roket_0.png",   # skin mặc định
+            "roket_1.png",
+            "roket_2.png", 
+            "roket_3.png",
+            "roket_4.png",
+        ]
         
-        if not ship_path.exists():
-            print(f"Không tìm thấy skin: {skin_name}.png → dùng roket_0.png")
-            ship_path = Path("src/backgrounds/roket_0.png")
+        # Lấy skin hiện tại
+        skin_name = f"roket_{self.settings.ship_skin}.png"  # hoặc ship_skin tùy bạn đặt
         
-        if not ship_path.exists():
-            print("Không có skin nào → vẽ hình thay thế")
-            surf = pygame.Surface((90, 68), pygame.SRCALPHA)
-            pygame.draw.polygon(surf, (100, 180, 255), [(45,0), (85,68), (45,50), (5,68)])
-            return surf
+        # Thử load skin hiện tại trước
+        path = resource_path(os.path.join("src", "backgrounds", skin_name))
+        if os.path.exists(path):
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                return pygame.transform.smoothscale(img, (90, 68))
+            except:
+                pass
         
-        try:
-            img = pygame.image.load(ship_path).convert_alpha()
-            return pygame.transform.smoothscale(img, (90, 68))
-        except Exception as e:
-            print(f"Lỗi tải skin {skin_name}: {e}")
-            surf = pygame.Surface((90, 68), pygame.SRCALPHA)
-            pygame.draw.polygon(surf, (255, 100, 100), [(45,0), (85,68), (45,50), (5,68)])
-            return surf
+        # Nếu không được → thử từng file trong danh sách
+        for filename in ship_files:
+            path = resource_path(os.path.join("src", "backgrounds", filename))
+            if os.path.exists(path):
+                try:
+                    img = pygame.image.load(path).convert_alpha()
+                    print(f"ĐÃ TẢI TÀU: {filename}")
+                    return pygame.transform.smoothscale(img, (90, 68))
+                except:
+                    pass
+        
+        # Cuối cùng nếu vẫn không có → vẽ tạm con tàu đỏ (đừng để trắng màn hình)
+        print("KHÔNG TÌM THẤY CON TÀU NÀO → vẽ tạm")
+        surf = pygame.Surface((90, 68), pygame.SRCALPHA)
+        pygame.draw.polygon(surf, (255, 80, 80), [(45,0), (85,68), (45,50), (5,68)])
+        pygame.draw.polygon(surf, (255, 200, 100), [(45,15), (70,50), (45,40), (20,50)])
+        return surf
 
     def update(self):
         if self.moving_right and self.rect.right < self.screen_rect.right:
@@ -671,19 +697,21 @@ class AlienInvasion:
         self._resize_gameplay_bg()
                 # ================== TẢI BACKGROUND MENU CHÍNH ==================
                 # ================== TẢI BACKGROUND MENU CHÍNH + MENU CŨ HOÀI CỔ ==================
-        try:
-            menu_path = Path("src/backgrounds/menu_bg.png")
-            if menu_path.exists():
-                self.menu_bg_original = pygame.image.load(menu_path).convert()
-                print(f"ĐÃ TẢI MENU BACKGROUND MỚI: {menu_path}")
-            else:
-                self.menu_bg_original = self.gameplay_bg_original or pygame.Surface((1200, 800))
-                print("Không có menu_bg.png → dùng ảnh mặc định")
-        except Exception as e:
-            print(f"Lỗi tải menu_bg.png: {e}")
-            self.menu_bg_original = self.gameplay_bg_original
+                # ================== TẢI BACKGROUND MENU CHÍNH ==================
+        menu_path_str = resource_path(os.path.join("src", "backgrounds", "menu_bg.png"))
+        if os.path.exists(menu_path_str):
+            try:
+                self.menu_bg_original = pygame.image.load(menu_path_str).convert()
+                print(f"ĐÃ TẢI MENU BACKGROUND MỚI: {menu_path_str}")
+            except Exception as e:
+                print(f"Lỗi tải menu_bg.png: {e}")
+                self.menu_bg_original = pygame.Surface((1200, 800))
+        else:
+            print("Không có menu_bg.png → dùng nền đen tạm")
+            self.menu_bg_original = pygame.Surface((1200, 800))
 
         # === TẢI ẢNH MENU CŨ – HOÀI CỔ, KÝ ỨC TUỔI THƠ ===
+                # === TẢI ẢNH MENU CŨ – HOÀI CỔ (nếu có) ===
         self.menu_bg_old_original = None
         old_paths = [
             "src/backgrounds/menu_bg.png",
@@ -694,16 +722,17 @@ class AlienInvasion:
             "backgrounds/menu_old.jpg",
         ]
         for p in old_paths:
-            path = Path(p)
-            if path.exists():
+            full_path = resource_path(p)          # ← resource_path trả về str
+            if os.path.exists(full_path):         # ← dùng os.path.exists
                 try:
-                    self.menu_bg_old_original = pygame.image.load(path).convert()
-                    print(f"ĐÃ TẢI ẢNH MENU CŨ HOÀI CỔ: {path}")
+                    self.menu_bg_old_original = pygame.image.load(full_path).convert()
+                    print(f"ĐÃ TẢI ẢNH MENU CŨ HOÀI CỔ: {full_path}")
                     break
                 except Exception as e:
-                    print(f"Lỗi tải ảnh cũ {path}: {e}")
-        else:
-            print("Không tìm thấy ảnh menu cũ → chỉ dùng menu mới thôi nha!")
+                    print(f"Lỗi tải ảnh cũ {full_path}: {e}")
+        if not self.menu_bg_old_original:
+            print("Không tìm thấy ảnh menu cũ nào → chỉ dùng menu mới thôi!")
+
         self.resize_all_backgrounds()
         
         self.stats = GameStats()
@@ -734,23 +763,14 @@ class AlienInvasion:
         self.show_hitboxes = False
         self.show_ship_selection = False
     def _load_gameplay_bg(self):
-        """Tự động tìm gameplay_bg.jpg ở nhiều chỗ phổ biến"""
-        possible_paths = [
-            "src/backgrounds/gameplay_bg.png",
-            "src/backgrounds/gameplay_bg.png",
-            "src/backgrounds/gameplay_bg.png",
-            "src/backgrounds/gameplay_bg.png",
-            "src/backgrounds/gameplay_bg.png",
-        ]
-        for p in possible_paths:
-            path = Path(p)
-            if path.exists():
-                try:
-                    img = pygame.image.load(path).convert()
-                    print(f"ĐÃ TẢI BACKGROUND: {path}")
-                    return img
-                except Exception as e:
-                    print(f"Lỗi tải {path}: {e}")
+        path = resource_path(os.path.join("src", "backgrounds", "gameplay_bg.png"))
+        if os.path.exists(path):
+            try:
+                img = pygame.image.load(path).convert()
+                print(f"ĐÃ TẢI BACKGROUND: {path}")
+                return img
+            except Exception as e:
+                print(f"Lỗi tải gameplay_bg: {e}")
         print("Không tìm thấy gameplay_bg.jpg → dùng nền đen")
         return None
 
@@ -779,31 +799,22 @@ class AlienInvasion:
             self.bg_scaled = None
 
     def load_sounds(self):
-        # Hỗ trợ âm thanh nằm trong src/sounds/ và nhiều định dạng
-        sound_list = [
-            "shoot", "hit", "ship_hit", "level_up", "explosion",
-            "selectButton",   # ← tiếng click menu
-            "laser",              # ← tiếng bắn
-            "youWin"
-        ]
-
-        for name in sound_list:
-            # Thử tìm trong src/sounds/ trước, rồi mới thử thư mục gốc
+        sound_names = ["shoot", "hit", "ship_hit", "level_up", "explosion", "selectButton", "laser", "youWin", "background"]
+        for name in sound_names:
             for folder in ["src/sounds", "sounds"]:
-                for ext in [".mp3", ".wav", ".ogg"]:
-                    sound_path = Path(folder) / f"{name}{ext}"
-                    if sound_path.exists():
+                for ext in [".wav", ".mp3", ".ogg"]:
+                    path = resource_path(os.path.join(folder, name + ext))
+                    if os.path.exists(path):
                         try:
-                            self.sounds[name] = pygame.mixer.Sound(sound_path)
-                            print(f"ĐÃ TẢI ÂM THANH: {sound_path}")
-                            break  # tìm thấy rồi thì thoát vòng lặp
-                        except Exception as e:
-                            print(f"Lỗi tải {sound_path}: {e}")
+                            self.sounds[name] = pygame.mixer.Sound(path)
+                            print(f"ĐÃ TẢI ÂM THANH: {name}")
+                            break
+                        except:
+                            pass
                 else:
-                    continue  # nếu chưa tìm thấy thì thử folder tiếp theo
-                break  # nếu đã tìm thấy trong folder này thì thoát
+                    continue
+                break
             else:
-                print(f"Không tìm thấy âm thanh: {name} trong src/sounds/ hoặc sounds/")
                 self.sounds[name] = None
 
     def play_sound(self, name):
@@ -958,46 +969,48 @@ class AlienInvasion:
                 attempts += 1
             print(f"ẢI 4: Random cực mạnh → {len(self.aliens)}/{target_count} alien – SẴN SÀNG BOSS!")
     def draw_ship_selection(self):
-        """Bảng chọn 5 skin tên lửa – đẹp như game AAA"""
         if not self.show_ship_selection:
             return
 
-        # Overlay mờ
         overlay = pygame.Surface((self.settings.screen_width, self.settings.screen_height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 220))
         self.screen.blit(overlay, (0, 0))
 
-        # Khung chính
         box = pygame.Rect(0, 0, 960, 560)
         box.center = self.screen.get_rect().center
         pygame.draw.rect(self.screen, (15, 25, 60), box, border_radius=30)
         pygame.draw.rect(self.screen, (100, 180, 255), box, 10, border_radius=30)
 
-        # Tiêu đề
         title = get_font(72).render("CHỌN TÊN LỬA", True, (255, 220, 50))
         title_rect = title.get_rect(center=(box.centerx, box.top + 80))
         shadow = get_font(72).render("CHỌN TÊN LỬA", True, (0, 0, 0))
         self.screen.blit(shadow, (title_rect.x + 4, title_rect.y + 4))
         self.screen.blit(title, title_rect)
 
-        # Hiển thị 5 skin
         start_x = box.centerx - 400
         y = box.centery + 20
         for i in range(5):
             x = start_x + i * 180
-            path = Path(f"src/backgrounds/roket_{i}.png")
             
-            if path.exists():
-                img = pygame.image.load(path).convert_alpha()
+            path = resource_path(os.path.join("src", "backgrounds", f"roket_{i}.png"))
+            if not os.path.exists(path):
+                path = resource_path(os.path.join("src", "backgrounds", f"rocket_{i}.png"))
+            if not os.path.exists(path):
+                path = resource_path(os.path.join("src", "backgrounds", f"ship_{i}.png"))
+            
+            if os.path.exists(path):
+                try:
+                    img = pygame.image.load(path).convert_alpha()
+                except:
+                    img = pygame.Surface((140,105), pygame.SRCALPHA)
+                    pygame.draw.polygon(img, (200,200,255), [(70,10),(130,100),(70,75),(10,100)])
             else:
-                # Hình thay thế nếu thiếu file
-                img = pygame.Surface((100, 80), pygame.SRCALPHA)
-                pygame.draw.polygon(img, (180, 180, 180), [(50,0), (90,80), (50,60), (10,80)])
+                img = pygame.Surface((140,105), pygame.SRCALPHA)
+                pygame.draw.polygon(img, (200,200,255), [(70,10),(130,100),(70,75),(10,100)])
             
             img = pygame.transform.smoothscale(img, (140, 105))
             rect = img.get_rect(center=(x, y))
 
-            # Viền vàng nếu đang chọn
             if i == self.settings.ship_skin:
                 glow = pygame.Surface((rect.width + 40, rect.height + 40), pygame.SRCALPHA)
                 glow.fill((255, 220, 0, 100))
@@ -1006,26 +1019,38 @@ class AlienInvasion:
 
             self.screen.blit(img, rect)
 
-            # Bấm để chọn
-            if rect.collidepoint(pygame.mouse.get_pos()):
-                if pygame.mouse.get_pressed()[0]:
-                    self.settings.ship_skin = i
-                    self.ship.image = self.ship._load_ship_image()
-                    self.ship.rect = self.ship.image.get_rect()
-                    self.ship.rect.midbottom = self.screen.get_rect().midbottom
-                    self.play_sound("selectButton")
-                    pygame.time.wait(180)  # chống click liên tục
+            # CLICK CHỌN TÀU – ĐÃ FIX ĐỨNG GAME
+            if rect.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0] and not getattr(self, "_click_delay", False):
+                self.settings.ship_skin = i
+                self.ship.image = self.ship._load_ship_image()
+                self.ship.rect = self.ship.image.get_rect()
+                self.ship.rect.midbottom = self.screen.get_rect().midbottom
+                self.play_sound("selectButton")
+                self._click_delay = True
+                pygame.time.delay(200)
+                self._click_delay = False
 
-        # Nút ĐÓNG
+        # NÚT ĐÓNG – ĐÃ FIX ĐỨNG GAME
         close_btn = pygame.Rect(box.centerx - 120, box.bottom - 100, 240, 70)
         pygame.draw.rect(self.screen, (200, 40, 40), close_btn, border_radius=20)
         pygame.draw.rect(self.screen, (255, 255, 255), close_btn, 5, border_radius=20)
         close_text = get_font(48).render("ĐÓNG", True, (255, 255, 255))
         self.screen.blit(close_text, close_text.get_rect(center=close_btn.center))
 
-        if close_btn.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
+        if close_btn.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0] and not getattr(self, "_click_delay", False):
             self.show_ship_selection = False
-            pygame.time.wait(180)
+            self._click_delay = True
+            pygame.time.delay(200)
+            self._click_delay = False
+
+    def _create_fallback_ship(self, i):
+        """Tạo tàu tạm nếu mất file – vẫn đẹp hơn tam giác xám"""
+        surf = pygame.Surface((140, 105), pygame.SRCALPHA)
+        colors = [(200,200,255), (200,255,200), (255,200,200), (255,240,100), (150,255,255)]
+        pts = [(70,10), (130,100), (70,75), (10,100)]
+        pygame.draw.polygon(surf, colors[i], pts)
+        pygame.draw.polygon(surf, (255,255,255), pts, 5)
+        return surf
     def run_game(self):
         last_state = None
         while True:
@@ -1356,67 +1381,70 @@ class AlienInvasion:
 
     # ================== HIỆN ẢNH YOU WIN KHI THẮNG ==================
     def _load_youwin_image(self):
-        """Tải ảnh YOU WIN"""
-        possible_paths = [
-            "src/backgrounds/youWin.jpg",
-            "src/backgrounds/youwin.jpg",
-            "src/backgrounds/YouWin.jpg",
-            "src/backgrounds/YOUWIN.jpg",
-            "assets/youWin.jpg",
+        """Tải ảnh YOU WIN – hoạt động cả khi chạy .py và .exe"""
+        possible_names = [
+            "youWin.jpg", "youwin.jpg", "YouWin.jpg", "YOUWIN.jpg",
+            "you_win.jpg", "win.jpg"
         ]
-        for p in possible_paths:
-            path = Path(p)
-            if path.exists():
+        for name in possible_names:
+            path = resource_path(os.path.join("src", "backgrounds", name))
+            if os.path.exists(path):
                 try:
                     img = pygame.image.load(path).convert_alpha()
                     print(f"ĐÃ TẢI ẢNH THẮNG: {path}")
                     return img
                 except Exception as e:
-                    print(f"Lỗi tải ảnh thắng {path}: {e}")
-        print("Không tìm thấy ảnh youWin.jpg → không hiện ảnh thắng")
+                    print(f"Lỗi tải {name}: {e}")
+        print("Không tìm thấy ảnh You Win → bỏ qua")
         return None
 
     def show_youwin_screen(self):
-        """Hiển thị ảnh YOU WIN + giữ nguyên ảnh đến khi bấm nút"""
+        """Hiển thị ảnh YOU WIN + hiệu ứng đẹp + giữ nguyên đến khi bấm nút"""
+        # Chỉ tải ảnh 1 lần duy nhất
         if not hasattr(self, 'youwin_image') or not self.youwin_image:
             self.youwin_image = self._load_youwin_image()
-        if not self.youwin_image:
-            return
 
-        # Phát nhạc thắng
+        if not self.youwin_image:
+            return  # không có ảnh thì thôi
+
+        # Phát âm thanh thắng (nếu có)
         self.play_sound("youWin")
 
-        # Scale ảnh vừa full màn hình (hoặc hơi to hơn cho hoành tráng)
-        win_img = pygame.transform.smoothscale(
+        # Scale ảnh to hơn một chút cho hoành tráng
+        scaled_img = pygame.transform.smoothscale(
             self.youwin_image,
-            (self.settings.screen_width + 100, self.settings.screen_height + 100)
+            (self.settings.screen_width + 120, self.settings.screen_height + 120)
         )
-        rect = win_img.get_rect(center=self.screen.get_rect().center)
+        rect = scaled_img.get_rect(center=self.screen.get_rect().center)
 
-        # Lưu ảnh vào thuộc tính để _update_screen() vẽ lại mỗi frame
-        self.current_win_image = win_img
+        # Lưu lại để _update_screen() tiếp tục vẽ mỗi frame
+        self.current_win_image = scaled_img
         self.current_win_rect = rect
 
-        # Hiệu ứng fade-in nhẹ (từ trong suốt → hiện rõ)
+        # === HIỆU ỨNG FADE-IN + ZOOM NHẸ (rất đẹp trong .exe) ===
         clock = pygame.time.Clock()
-        alpha = 0
-        while alpha < 255:
+        for i in range(60):  # ~1 giây
             self.screen.fill((0, 0, 0))
-            img = self.current_win_image.copy()
-            img.set_alpha(alpha)
-            self.screen.blit(img, self.current_win_rect)
+
+            # Zoom từ 0.7 → 1.15
+            scale = 0.7 + (i / 60) * 0.45
+            temp_img = pygame.transform.smoothscale(
+                scaled_img,
+                (int(scaled_img.get_width() * scale),
+                 int(scaled_img.get_height() * scale))
+            )
+            temp_rect = temp_img.get_rect(center=self.screen.get_rect().center)
+
+            # Fade-in cùng lúc
+            alpha = int(255 * (i / 50))  # nhanh hơn một chút
+            temp_img.set_alpha(max(0, min(255, alpha)))
+
+            self.screen.blit(temp_img, temp_rect)
             pygame.display.flip()
-            alpha += 10
             clock.tick(60)
 
-        # Giữ nguyên ảnh đến khi người chơi bấm nút (không tự mất nữa!)
-        # → ảnh sẽ được vẽ lại liên tục trong _update_screen()
-        
-
-        # zoom từ 0.3 → 1.1 trong ~1 giây
-
-        # Giữ ảnh 2 giây
-        pygame.time.wait(2000)
+        # Sau khi hiệu ứng xong → để _update_screen() tự vẽ lại liên tục
+        # (không cần pygame.time.wait nữa, ảnh sẽ giữ mãi cho đến khi bấm nút tiếp theo)
         
     def show_gameover_screen(self):
         """Hiển thị ảnh GAME OVER full màn + hiệu ứng fade in"""

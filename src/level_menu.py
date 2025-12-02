@@ -14,7 +14,12 @@ import random
 import math
 from pathlib import Path
 from font_helper import get_font
-
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 class LevelMenu:
     def __init__(self, ai_game):
         self.ai_game = ai_game
@@ -54,19 +59,29 @@ class LevelMenu:
         self._scale_background()
 
     def _load_background_image(self):
-        """Tải ảnh nền từ file"""
-        bg_path = Path("assets/bg/level_menu_bg.jpg")
-        if not bg_path.exists():
-            bg_path = Path("src/backgrounds/level_menu_bg.jpg")
-        if not bg_path.exists():
-            print("Không tìm thấy ảnh nền! Dùng gradient thay thế.")
-            return None
-        try:
-            img = pygame.image.load(bg_path).convert()
-            return img
-        except Exception as e:
-            print(f"Lỗi tải ảnh: {e}")
-            return None
+        """Tải ảnh nền từ file – CHẠY NGON CẢ .EXE"""
+        import os
+        
+        # Danh sách các tên file có thể có
+        possible_names = [
+            "level_menu_bg.jpg", "level_menu_bg.png",
+            "level_select_bg.jpg", "menu_level.jpg",
+            "bg_level.jpg", "level_bg.jpg"
+        ]
+        
+        # Thử tìm trong src/backgrounds trước
+        for name in possible_names:
+            path = resource_path(os.path.join("src", "backgrounds", name))
+            if os.path.exists(path):
+                try:
+                    img = pygame.image.load(path).convert()
+                    print(f"ĐÃ TẢI ẢNH NỀN MENU CHỌN ẢI: {path}")
+                    return img
+                except Exception as e:
+                    print(f"Lỗi tải {name}: {e}")
+        
+        print("Không tìm thấy ảnh nền menu chọn ải → dùng gradient")
+        return None
 
     def _scale_background(self):
         """Scale ảnh nền theo kích thước màn hình"""
